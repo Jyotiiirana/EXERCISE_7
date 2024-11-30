@@ -1,0 +1,83 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import mean_squared_error, classification_report
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+# Load dataset
+file_path = r"C:\Users\Lenovo\OneDrive\Desktop\Food_price_sept23.csv" 
+data = pd.read_csv(file_path)
+
+# Data cleaning: Remove rows with missing values and reset the index
+cleaned_data = data.dropna(subset=['Data_value']).reset_index(drop=True)
+
+# 1. Linear Regression: Predict 'Data_value' based on 'Period'
+# Prepare data for Linear Regression
+X_lr = cleaned_data[['Period']]  # Feature: Period (time)
+y_lr = cleaned_data['Data_value']  # Target: Food price index
+
+# Train-test split
+X_train_lr, X_test_lr, y_train_lr, y_test_lr = train_test_split(X_lr, y_lr, test_size=0.2, random_state=42)
+
+# Train Linear Regression model
+lr_model = LinearRegression()
+lr_model.fit(X_train_lr, y_train_lr)
+
+# Predict and evaluate
+y_pred_lr = lr_model.predict(X_test_lr)
+lr_mse = mean_squared_error(y_test_lr, y_pred_lr)
+print("Linear Regression Mean Squared Error:", lr_mse)
+
+# 2. KNN: Categorize 'Data_value' into low, medium, and high
+# Define categories based on quantiles
+cleaned_data['Category'] = pd.qcut(cleaned_data['Data_value'], q=3, labels=['Low', 'Medium', 'High'])
+
+# Prepare data for KNN
+X_knn = cleaned_data[['Period']]
+y_knn = cleaned_data['Category']
+
+# Train-test split
+X_train_knn, X_test_knn, y_train_knn, y_test_knn = train_test_split(X_knn, y_knn, test_size=0.2, random_state=42)
+
+# Train KNN model
+knn_model = KNeighborsClassifier(n_neighbors=5)
+knn_model.fit(X_train_knn, y_train_knn)
+
+# Predict and evaluate
+y_pred_knn = knn_model.predict(X_test_knn)
+knn_report = classification_report(y_test_knn, y_pred_knn)
+print("\nKNN Classification Report:\n", knn_report)
+
+# 3. Logistic Regression: Binary classification for trend analysis (e.g., above/below median)
+# Create binary target
+median_value = cleaned_data['Data_value'].median()
+cleaned_data['Above_Median'] = (cleaned_data['Data_value'] > median_value).astype(int)
+
+# Prepare data for Logistic Regression
+X_logr = cleaned_data[['Period']]
+y_logr = cleaned_data['Above_Median']
+
+# Train-test split
+X_train_logr, X_test_logr, y_train_logr, y_test_logr = train_test_split(X_logr, y_logr, test_size=0.2, random_state=42)
+
+# Train Logistic Regression model
+logr_model = LogisticRegression()
+logr_model.fit(X_train_logr, y_train_logr)
+
+# Predict and evaluate
+y_pred_logr = logr_model.predict(X_test_logr)
+logr_report = classification_report(y_test_logr, y_pred_logr)
+print("\nLogistic Regression Classification Report:\n", logr_report)
+
+
+# Linear Regression: Plot actual vs. predicted
+plt.figure(figsize=(10, 6))
+plt.scatter(X_test_lr, y_test_lr, color='blue', label='Actual', alpha=0.6)
+plt.scatter(X_test_lr, y_pred_lr, color='red', label='Predicted', alpha=0.6)
+plt.title("Linear Regression: Actual vs Predicted")
+plt.xlabel("Period")
+plt.ylabel("Data Value")
+plt.legend()
+plt.show()
